@@ -19,14 +19,17 @@
         .container {
             width: 100%;
             max-width: 800px;
-            margin: 1rem;
+            padding: 0 16px; /* Додаємо бокові відступи */
+            margin: 1rem auto;
             display: flex;
             flex-direction: column;
             align-items: center;
+            box-sizing: border-box; /* Щоб відступи враховувались у ширину */
         }
         .header {
             margin-bottom: 2rem;
             text-align: center;
+            width: 100%;
         }
         .card-container {
             position: relative;
@@ -76,9 +79,10 @@
             width: 100%;
             justify-content: space-between;
             margin-bottom: 1rem;
+            gap: 10px; /* Додаємо відстань між кнопками */
         }
         .nav-button {
-            padding: 0.75rem 1.5rem;
+            padding: 0.75rem 1rem; /* Зменшуємо горизонтальні відступи для малих екранів */
             font-size: 1rem;
             border: none;
             border-radius: 5px;
@@ -87,6 +91,9 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            flex: 1; /* Кнопки займають пропорційно доступний простір */
+            text-align: center;
+            justify-content: center;
         }
         .btn-dont-know {
             background-color: #f8d7da;
@@ -120,11 +127,17 @@
             width: 100%;
             justify-content: space-between;
             margin-bottom: 2rem;
+            flex-wrap: wrap; /* Дозволяємо перенос на малих екранах */
+        }
+        .info > div {
+            margin-bottom: 8px; /* Відступ знизу для мобільних */
         }
         .category-label {
             font-size: 1.5em;
             color: #6c757d;
             margin-bottom: 0.5rem;
+            text-align: center;
+            width: 100%;
         }
         .reset-button {
             padding: 0.5rem 1rem;
@@ -145,6 +158,7 @@
             gap: 0.5rem;
             margin-bottom: 1rem;
             justify-content: center;
+            width: 100%;
         }
         .letter-button {
             padding: 0.5rem;
@@ -172,13 +186,15 @@
             border-bottom: 1px solid #dee2e6;
         }
         .tab {
-            padding: 0.75rem 1.5rem;
+            padding: 0.75rem 1rem; /* Зменшуємо горизонтальні відступи */
             cursor: pointer;
             border: 1px solid transparent;
             border-top-left-radius: 5px;
             border-top-right-radius: 5px;
             margin-bottom: -1px;
             transition: background-color 0.3s;
+            text-align: center;
+            flex: 1; /* Кнопки займають пропорційно доступний простір */
         }
         .tab:hover {
             background-color: #f8f9fa;
@@ -205,6 +221,7 @@
         .words-table-container {
             width: 100%;
             margin-bottom: 2rem;
+            overflow-x: auto; /* Горизонтальна прокрутка для малих екранів */
             overflow-y: auto;
             max-height: 400px;
         }
@@ -252,6 +269,7 @@
             background-color: #f8f9fa;
             border-radius: 5px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-sizing: border-box;
         }
         .form-group {
             display: flex;
@@ -315,6 +333,7 @@
             display: flex;
             gap: 1rem;
             margin-bottom: 1rem;
+            flex-wrap: wrap; /* Дозволяємо перенос на малих екранах */
         }
         .export-btn, .import-btn {
             padding: 0.5rem 1rem;
@@ -324,12 +343,42 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s;
+            flex: 1; /* Розтягуємо кнопки на малих екранах */
+            min-width: 120px; /* Мінімальна ширина кнопки */
+            text-align: center;
         }
         .export-btn:hover, .import-btn:hover {
             background-color: #138496;
         }
         .file-input {
             display: none;
+        }
+        
+        /* Медіа-запити для різних розмірів екрану */
+        @media (max-width: 576px) {
+            .container {
+                padding: 0 16px;
+            }
+            .card-face {
+                font-size: 1.5em; /* Зменшуємо розмір тексту для малих екранів */
+            }
+            .nav-button {
+                padding: 0.5rem;
+                font-size: 0.9rem;
+            }
+            .submit-btn {
+                align-self: center; /* Центруємо кнопку на малих екранах */
+                width: 100%; /* Повна ширина для кнопки на малих екранах */
+            }
+            .info {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .info > div {
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+            }
         }
     </style>
 </head>
@@ -345,9 +394,7 @@
         </div>
         
         <!-- Сторінка вивчення -->
-        <div class="page active" id="learn-page">
-            <p>Натисніть на картку щоб побачити правильний наголос</p>
-            
+        <div class="page active" id="learn-page">            
             <div class="info">
                 <div>
                     <p>Всього слів: <span id="total-count">0</span></p>
@@ -429,9 +476,6 @@
         </div>
     </div>
     
-    <!-- Сповіщення -->
-    <div class="notification" id="notification"></div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Масив слів з наголосами
