@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Українські наголоси - Флеш-картки</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --accent-color: #e74c3c;
+            --bg-color: #f9f9f9;
+            --card-color: #ffffff;
+            --text-color: #333333;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .flashcard-container {
+            perspective: 1000px;
+            margin: 30px auto;
+            width: 100%;
+            max-width: 500px;
+            height: 250px;
+        }
+        
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+        
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            font-size: 24px;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        
+        .flashcard-front {
+            background-color: var(--card-color);
+            color: var(--text-color);
+        }
+        
+        .flashcard-back {
+            background-color: var(--primary-color);
+            color: white;
+            transform: rotateY(180deg);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .progress {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 16px;
+        }
+        
+        .word-management {
+            margin-top: 40px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        
+        .word-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        .word-form input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .word-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: var(--card-color);
+        }
+        
+        .word-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .word-item:last-child {
+            border-bottom: none;
+        }
+        
+        .edit-controls {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .edit-controls button {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        
+        .delete-btn {
+            background-color: var(--accent-color);
+        }
+        
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .tab-container {
+            margin-top: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background-color: #e0e0e0;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .tab.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .stats {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .flashcard-container {
+                height: 200px;
+            }
+            
+            .word-form {
+                flex-direction: column;
+            }
+            
+            .word-form input, .word-form button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Українські наголоси</h1>
+        <p class="stats">Вивчено: <span id="learned-count">0</span> з <span id="total-count">0</span></p>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="practice">Практика</button>
+            <button class="tab" data-tab="manage">Керування словами</button>
+        </div>
+        
+        <div class="tab-content active" id="practice-tab">
+            <div class="flashcard-container">
+                <div class="flashcard" id="flashcard">
+                    <div class="flashcard-front">
+                        <span id="word-front">Натисніть "Почати"</span>
+                    </div>
+                    <div class="flashcard-back">
+                        <span id="word-back">Тут буде правильний наголос</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="progress">
+                <span id="current-index">0</span> / <span id="total-words">0</span>
+            </div>
+            
+            <div class="controls">
+                <button id="prev-btn">Попереднє</button>
+                <button id="flip-btn">Перевернути</button>
+                <button id="next-btn">Наступне</button>
+                <button id="start-btn">Почати</button>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="manage-tab">
+            <div class="word-management">
+                <h2>Додавання та керування словами</h2>
+                
+                <div class="word-form">
+                    <input type="text" id="word-input" placeholder="Слово без наголосу" required>
+                    <input type="text" id="word-with-accent-input" placeholder="Слово з наголосом (а́)" required>
+                    <button id="add-word-btn">Додати слово</button>
+                </div>
+                
+                <h3>Список слів:</h3>
+                <div class="word-list" id="word-list">
+                    <!-- Words will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize variables
+            let words = [];
+            let currentIndex = 0;
+            let isStarted = false;
+            
+            // DOM elements
+            const flashcard = document.getElementById('flashcard');
+            const wordFront = document.getElementById('word-front');
+            const wordBack = document.getElementById('word-back');
+            const currentIndexSpan = document.getElementById('current-index');
+            const totalWordsSpan = document.getElementById('total-words');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const flipBtn = document.getElementById('flip-btn');
+            const startBtn = document.getElementById('start-btn');
+            const wordInput = document.getElementById('word-input');
+            const wordWithAccentInput = document.getElementById('word-with-accent-input');
+            const addWordBtn = document.getElementById('add-word-btn');
+            const wordList = document.getElementById('word-list');
+            const learnedCount = document.getElementById('learned-count');
+            const totalCount = document.getElementById('total-count');
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            // Load words from local storage
+            loadWords();
+            updateStats();
+            updateInitialStats();
+            
+            // Event listeners
+            flashcard.addEventListener('click', toggleFlip);
+            prevBtn.addEventListener('click', prevWord);
+            nextBtn.addEventListener('click', nextWord);
+            flipBtn.addEventListener('click', toggleFlip);
+            startBtn.addEventListener('click', startPractice);
+            addWordBtn.addEventListener('click', addWord);
+            
+            // Tab navigation
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    
+                    // Remove active class from all tabs and tab contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(tc => tc.classList.remove('active'));
+                    
+                    // Add active class to the clicked tab and corresponding content
+                    tab.classList.add('active');
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            // Functions
+            function toggleFlip() {
+                if (isStarted) {
+                    flashcard.classList.toggle('flipped');
+                }
+            }
+            
+            // Update statistics immediately after loading the page
+            function updateInitialStats() {
+                currentIndexSpan.textContent = words.length > 0 ? '1' : '0';
+                totalWordsSpan.textContent = words.length.toString();
+                totalCount.textContent = words.length.toString();
+                learnedCount.textContent = words.filter(word => word.learned).length.toString();
+            }
+            
+            function prevWord() {
+                if (!isStarted || words.length === 0) return;
+                
+                currentIndex = (currentIndex - 1 + words.length) % words.length;
+                updateFlashcard();
+            }
+            
+            function nextWord() {
+                if (!isStarted || words.length === 0) return;
+                
+                currentIndex = (currentIndex + 1) % words.length;
+                updateFlashcard();
+            }
+            
+            function startPractice() {
+                if (words.length === 0) {
+                    alert('Додайте слова для вивчення!');
+                    return;
+                }
+                
+                isStarted = true;
+                currentIndex = 0;
+                startBtn.classList.add('hidden');
+                updateFlashcard();
+            }
+            
+            function updateFlashcard() {
+                if (words.length === 0) {
+                    wordFront.textContent = 'Додайте слова для вивчення';
+                    wordBack.textContent = 'Додайте слова для вивчення';
+                    currentIndexSpan.textContent = '0';
+                    totalWordsSpan.textContent = '0';
+                    learnedCount.textContent = '0';
+                    totalCount.textContent = '0';
+                    return;
+                }
+                
+                const word = words[currentIndex];
+                wordFront.textContent = word.word;
+                wordBack.textContent = word.wordWithAccent;
+                currentIndexSpan.textContent = (currentIndex + 1).toString();
+                totalWordsSpan.textContent = words.length.toString();
+                
+                flashcard.classList.remove('flipped');
+            }
+            
+            function addWord() {
+                const word = wordInput.value.trim();
+                const wordWithAccent = wordWithAccentInput.value.trim();
+                
+                if (word === '' || wordWithAccent === '') {
+                    alert('Будь ласка, заповніть обидва поля!');
+                    return;
+                }
+                
+                const newWord = {
+                    id: Date.now(),
+                    word: word,
+                    wordWithAccent: wordWithAccent,
+                    learned: false
+                };
+                
+                words.push(newWord);
+                saveWords();
+                updateWordList();
+                
+                wordInput.value = '';
+                wordWithAccentInput.value = '';
+                
+                if (!isStarted && words.length === 1) {
+                    updateFlashcard();
+                }
+            }
+            
+            function deleteWord(id) {
+                words = words.filter(word => word.id !== id);
+                saveWords();
+                updateWordList();
+                
+                if (words.length === 0) {
+                    isStarted = false;
+                    startBtn.classList.remove('hidden');
+                    updateFlashcard();
+                } else if (currentIndex >= words.length) {
+                    currentIndex = words.length - 1;
+                    updateFlashcard();
+                }
+            }
+            
+            function editWord(id) {
+                const word = words.find(word => word.id === id);
+                
+                if (!word) return;
+                
+                const newWord = prompt('Слово без наголосу:', word.word);
+                if (newWord === null) return;
+                
+                const newWordWithAccent = prompt('Слово з наголосом:', word.wordWithAccent);
+                if (newWordWithAccent === null) return;
+                
+                word.word = newWord.trim();
+                word.wordWithAccent = newWordWithAccent.trim();
+                
+                saveWords();
+                updateWordList();
+                
+                if (isStarted) {
+                    updateFlashcard();
+                }
+            }
+            
+            function toggleLearned(id) {
+                const word = words.find(word => word.id === id);
+                
+                if (!word) return;
+                
+                word.learned = !word.learned;
+                saveWords();
+                updateWordList();
+                updateStats();
+            }
+            
+            function updateWordList() {
+                wordList.innerHTML = '';
+                
+                if (words.length === 0) {
+                    const emptyMessage = document.createElement('p');
+                    emptyMessage.textContent = 'Немає доданих слів. Додайте нові слова для вивчення.';
+                    wordList.appendChild(emptyMessage);
+                    return;
+                }
+                
+                words.forEach(word => {
+                    const wordItem = document.createElement('div');
+                    wordItem.className = 'word-item';
+                    if (word.learned) {
+                        wordItem.style.backgroundColor = '#e8f5e9';
+                    }
+                    
+                    const wordText = document.createElement('div');
+                    wordText.textContent = `${word.word} — ${word.wordWithAccent}`;
+                    
+                    const editControls = document.createElement('div');
+                    editControls.className = 'edit-controls';
+                    
+                    const learnedBtn = document.createElement('button');
+                    learnedBtn.textContent = word.learned ? '✓' : '○';
+                    learnedBtn.title = word.learned ? 'Позначити як невивчене' : 'Позначити як вивчене';
+                    learnedBtn.addEventListener('click', () => toggleLearned(word.id));
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.textContent = '✎';
+                    editBtn.title = 'Редагувати';
+                    editBtn.addEventListener('click', () => editWord(word.id));
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '✕';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.title = 'Видалити';
+                    deleteBtn.addEventListener('click', () => deleteWord(word.id));
+                    
+                    editControls.appendChild(learnedBtn);
+                    editControls.appendChild(editBtn);
+                    editControls.appendChild(deleteBtn);
+                    
+                    wordItem.appendChild(wordText);
+                    wordItem.appendChild(editControls);
+                    
+                    wordList.appendChild(wordItem);
+                });
+            }
+            
+            function saveWords() {
+                localStorage.setItem('ukrAccentWords', JSON.stringify(words));
+                updateStats();
+            }
+            
+            function loadWords() {
+                const savedWords = localStorage.getItem('ukrAccentWords');
+                if (savedWords) {
+                    words = JSON.parse(savedWords);
+                } else {
+                    // Add some default words
+                    words = [
+                        { id: 1, word: 'вимова', wordWithAccent: 'вимо́ва', learned: false },
+                        { id: 2, word: 'новий', wordWithAccent: 'нови́й', learned: false },
+                        { id: 3, word: 'читання', wordWithAccent: 'чита́ння', learned: false },
+                        { id: 4, word: 'дошка', wordWithAccent: 'до́шка', learned: false },
+                        { id: 5, word: 'зручний', wordWithAccent: 'зру́чний', learned: false }
+                    ];
+                    saveWords();
+                }
+                
+                updateWordList();
+                updateFlashcard();
+                
+                // Ensure stats are updated
+                totalWordsSpan.textContent = words.length.toString();
+                totalCount.textContent = words.length.toString();
+            }
+            
+            function updateStats() {
+                const learned = words.filter(word => word.learned).length;
+                learnedCount.textContent = learned.toString();
+                totalCount.textContent = words.length.toString();
+            }
+        });
+    </script>
+</body>
+</html>
