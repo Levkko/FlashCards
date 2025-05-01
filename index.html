@@ -9,6 +9,7 @@
             --primary-color: #3498db;
             --secondary-color: #2980b9;
             --accent-color: #e74c3c;
+            --success-color: #2ecc71;
             --bg-color: #f9f9f9;
             --card-color: #ffffff;
             --text-color: #333333;
@@ -21,6 +22,7 @@
             line-height: 1.6;
             margin: 0;
             padding: 20px;
+            touch-action: manipulation;
         }
         
         h1, h2 {
@@ -40,19 +42,62 @@
             width: 100%;
             max-width: 500px;
             height: 250px;
+            position: relative;
+            overflow: visible;
         }
         
         .flashcard {
             width: 100%;
             height: 100%;
             transform-style: preserve-3d;
-            transition: transform 0.6s;
+            transition: transform 0.6s, left 0.3s ease;
             cursor: pointer;
-            position: relative;
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: 1;
         }
         
         .flashcard.flipped {
             transform: rotateY(180deg);
+        }
+        
+        .flashcard.swiping-left {
+            transform: translateX(-150%) rotate(-10deg);
+            opacity: 0;
+        }
+        
+        .flashcard.swiping-right {
+            transform: translateX(150%) rotate(10deg);
+            opacity: 0;
+        }
+        
+        .swipe-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .swipe-left {
+            background-color: var(--accent-color);
+            transform: translateX(-30px);
+        }
+        
+        .swipe-right {
+            background-color: var(--success-color);
+            transform: translateX(30px);
         }
         
         .flashcard-front, .flashcard-back {
@@ -84,6 +129,7 @@
         
         .controls {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             margin: 20px 0;
             gap: 10px;
@@ -102,6 +148,29 @@
         
         button:hover {
             background-color: var(--secondary-color);
+        }
+        
+        .success-btn {
+            background-color: var(--success-color);
+        }
+        
+        .success-btn:hover {
+            background-color: #27ae60;
+        }
+        
+        .danger-btn {
+            background-color: var(--accent-color);
+        }
+        
+        .danger-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .swipe-hint {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 14px;
+            color: #888;
         }
         
         .progress {
@@ -129,6 +198,8 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             font-size: 16px;
+            flex: 1;
+            min-width: 100px;
         }
         
         .word-list {
@@ -212,6 +283,22 @@
             margin-bottom: 20px;
         }
         
+        .swipe-instruction {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        
+        .filter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 15px 0;
+            gap: 10px;
+        }
+        
         @media (max-width: 600px) {
             .flashcard-container {
                 height: 200px;
@@ -221,8 +308,24 @@
                 flex-direction: column;
             }
             
-            .word-form input, .word-form button {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .controls button {
                 width: 100%;
+                margin: 5px 0;
+            }
+            
+            .tabs {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .tab {
+                border-radius: 5px;
+                margin-bottom: 5px;
             }
         }
     </style>
@@ -238,7 +341,19 @@
         </div>
         
         <div class="tab-content active" id="practice-tab">
+            <div class="swipe-instruction">
+                Свайпніть <strong>вправо</strong> якщо вивчили слово, <strong>вліво</strong> якщо потрібно повторити ще
+            </div>
+            
+            <div class="filter-controls">
+                <button id="show-all-btn" class="active">Всі слова</button>
+                <button id="show-unlearned-btn">Тільки невивчені</button>
+                <button id="restart-btn">Почати спочатку</button>
+            </div>
+            
             <div class="flashcard-container">
+                <div class="swipe-indicator swipe-left">❌</div>
+                <div class="swipe-indicator swipe-right">✓</div>
                 <div class="flashcard" id="flashcard">
                     <div class="flashcard-front">
                         <span id="word-front">Натисніть "Почати"</span>
@@ -254,9 +369,12 @@
             </div>
             
             <div class="controls">
-                <button id="prev-btn">Попереднє</button>
                 <button id="flip-btn">Перевернути</button>
-                <button id="next-btn">Наступне</button>
+                <button id="prev-btn">←</button>
+                <button id="not-learned-btn" class="danger-btn">Не вивчив</button>
+                <button id="learned-btn" class="success-btn">Вивчив</button>
+                <button id="master-btn">Знаю досконало</button>
+                <button id="next-btn">→</button>
                 <button id="start-btn">Почати</button>
             </div>
         </div>
@@ -285,6 +403,10 @@
             let words = [];
             let currentIndex = 0;
             let isStarted = false;
+            let activeFilter = 'all'; // 'all' or 'unlearned'
+            let touchStartX = 0;
+            let touchEndX = 0;
+            let isSwiping = false;
             
             // DOM elements
             const flashcard = document.getElementById('flashcard');
@@ -296,6 +418,12 @@
             const nextBtn = document.getElementById('next-btn');
             const flipBtn = document.getElementById('flip-btn');
             const startBtn = document.getElementById('start-btn');
+            const learnedBtn = document.getElementById('learned-btn');
+            const notLearnedBtn = document.getElementById('not-learned-btn');
+            const masterBtn = document.getElementById('master-btn');
+            const showAllBtn = document.getElementById('show-all-btn');
+            const showUnlearnedBtn = document.getElementById('show-unlearned-btn');
+            const restartBtn = document.getElementById('restart-btn');
             const wordInput = document.getElementById('word-input');
             const wordWithAccentInput = document.getElementById('word-with-accent-input');
             const addWordBtn = document.getElementById('add-word-btn');
@@ -304,11 +432,20 @@
             const totalCount = document.getElementById('total-count');
             const tabs = document.querySelectorAll('.tab');
             const tabContents = document.querySelectorAll('.tab-content');
+            const swipeLeft = document.querySelector('.swipe-left');
+            const swipeRight = document.querySelector('.swipe-right');
             
             // Load words from local storage
             loadWords();
             updateStats();
             updateInitialStats();
+            
+            // Hide action buttons initially
+            learnedBtn.classList.add('hidden');
+            notLearnedBtn.classList.add('hidden');
+            masterBtn.classList.add('hidden');
+            prevBtn.classList.add('hidden');
+            nextBtn.classList.add('hidden');
             
             // Event listeners
             flashcard.addEventListener('click', toggleFlip);
@@ -316,7 +453,18 @@
             nextBtn.addEventListener('click', nextWord);
             flipBtn.addEventListener('click', toggleFlip);
             startBtn.addEventListener('click', startPractice);
+            learnedBtn.addEventListener('click', markAsLearned);
+            notLearnedBtn.addEventListener('click', markAsNotLearned);
+            masterBtn.addEventListener('click', deleteWordPermanently);
+            showAllBtn.addEventListener('click', () => filterWords('all'));
+            showUnlearnedBtn.addEventListener('click', () => filterWords('unlearned'));
+            restartBtn.addEventListener('click', restartPractice);
             addWordBtn.addEventListener('click', addWord);
+            
+            // Swipe gesture handling
+            flashcard.addEventListener('touchstart', handleTouchStart);
+            flashcard.addEventListener('touchmove', handleTouchMove);
+            flashcard.addEventListener('touchend', handleTouchEnd);
             
             // Tab navigation
             tabs.forEach(tab => {
@@ -332,6 +480,62 @@
                     document.getElementById(`${tabId}-tab`).classList.add('active');
                 });
             });
+            
+            // Functions for touch handling
+            function handleTouchStart(e) {
+                if (!isStarted || words.length === 0) return;
+                touchStartX = e.touches[0].clientX;
+                isSwiping = true;
+            }
+            
+            function handleTouchMove(e) {
+                if (!isSwiping) return;
+                
+                touchEndX = e.touches[0].clientX;
+                const diffX = touchEndX - touchStartX;
+                
+                // Update card position based on swipe
+                flashcard.style.left = `${diffX}px`;
+                
+                // Show swipe indicators
+                if (diffX < -50) {
+                    swipeLeft.style.opacity = Math.min(Math.abs(diffX) / 200, 0.8);
+                } else if (diffX > 50) {
+                    swipeRight.style.opacity = Math.min(Math.abs(diffX) / 200, 0.8);
+                } else {
+                    swipeLeft.style.opacity = 0;
+                    swipeRight.style.opacity = 0;
+                }
+            }
+            
+            function handleTouchEnd(e) {
+                if (!isSwiping) return;
+                isSwiping = false;
+                
+                const diffX = touchEndX - touchStartX;
+                
+                // Reset position
+                flashcard.style.left = '0px';
+                swipeLeft.style.opacity = 0;
+                swipeRight.style.opacity = 0;
+                
+                // Process swipe action
+                if (diffX < -100) {
+                    // Swiped left - Not learned
+                    flashcard.classList.add('swiping-left');
+                    setTimeout(() => {
+                        markAsNotLearned();
+                        flashcard.classList.remove('swiping-left');
+                    }, 300);
+                } else if (diffX > 100) {
+                    // Swiped right - Learned
+                    flashcard.classList.add('swiping-right');
+                    setTimeout(() => {
+                        markAsLearned();
+                        flashcard.classList.remove('swiping-right');
+                    }, 300);
+                }
+            }
             
             // Functions
             function toggleFlip() {
@@ -351,27 +555,171 @@
             function prevWord() {
                 if (!isStarted || words.length === 0) return;
                 
-                currentIndex = (currentIndex - 1 + words.length) % words.length;
+                const filteredWords = getFilteredWords();
+                const filteredIndex = filteredWords.findIndex(word => word.id === words[currentIndex].id);
+                
+                if (filteredIndex > 0) {
+                    currentIndex = words.findIndex(word => word.id === filteredWords[filteredIndex - 1].id);
+                } else {
+                    currentIndex = words.findIndex(word => word.id === filteredWords[filteredWords.length - 1].id);
+                }
+                
                 updateFlashcard();
             }
             
             function nextWord() {
                 if (!isStarted || words.length === 0) return;
                 
-                currentIndex = (currentIndex + 1) % words.length;
+                const filteredWords = getFilteredWords();
+                const filteredIndex = filteredWords.findIndex(word => word.id === words[currentIndex].id);
+                
+                if (filteredIndex < filteredWords.length - 1) {
+                    currentIndex = words.findIndex(word => word.id === filteredWords[filteredIndex + 1].id);
+                } else {
+                    currentIndex = words.findIndex(word => word.id === filteredWords[0].id);
+                }
+                
                 updateFlashcard();
             }
             
             function startPractice() {
-                if (words.length === 0) {
+                const filteredWords = getFilteredWords();
+                
+                if (filteredWords.length === 0) {
                     alert('Додайте слова для вивчення!');
                     return;
                 }
                 
                 isStarted = true;
-                currentIndex = 0;
+                currentIndex = words.findIndex(word => word.id === filteredWords[0].id);
+                
+                // Hide start button, show action buttons
                 startBtn.classList.add('hidden');
+                learnedBtn.classList.remove('hidden');
+                notLearnedBtn.classList.remove('hidden');
+                masterBtn.classList.remove('hidden');
+                prevBtn.classList.remove('hidden');
+                nextBtn.classList.remove('hidden');
+                
                 updateFlashcard();
+            }
+            
+            function restartPractice() {
+                if (words.length === 0) {
+                    alert('Додайте слова для вивчення!');
+                    return;
+                }
+                
+                // Reset learned status for restart
+                if (confirm('Почати з усіма словами спочатку?')) {
+                    words.forEach(word => {
+                        word.learned = false;
+                    });
+                    
+                    saveWords();
+                    activeFilter = 'all';
+                    showAllBtn.classList.add('active');
+                    showUnlearnedBtn.classList.remove('active');
+                    
+                    startPractice();
+                }
+            }
+            
+            function markAsLearned() {
+                if (!isStarted || words.length === 0) return;
+                
+                const word = words[currentIndex];
+                word.learned = true;
+                saveWords();
+                
+                // Move to next card
+                const filteredWords = getFilteredWords();
+                if (filteredWords.length === 0) {
+                    alert('Вітаємо! Ви вивчили всі слова!');
+                    isStarted = false;
+                    startBtn.classList.remove('hidden');
+                    learnedBtn.classList.add('hidden');
+                    notLearnedBtn.classList.add('hidden');
+                    masterBtn.classList.add('hidden');
+                    prevBtn.classList.add('hidden');
+                    nextBtn.classList.add('hidden');
+                    return;
+                }
+                
+                nextWord();
+            }
+            
+            function markAsNotLearned() {
+                if (!isStarted || words.length === 0) return;
+                
+                const word = words[currentIndex];
+                word.learned = false;
+                saveWords();
+                
+                nextWord();
+            }
+            
+            function deleteWordPermanently() {
+                if (!isStarted || words.length === 0) return;
+                
+                if (confirm('Видалити це слово назавжди?')) {
+                    const wordId = words[currentIndex].id;
+                    words = words.filter(word => word.id !== wordId);
+                    saveWords();
+                    updateWordList();
+                    
+                    const filteredWords = getFilteredWords();
+                    if (filteredWords.length === 0) {
+                        alert('Немає більше слів для вивчення!');
+                        isStarted = false;
+                        startBtn.classList.remove('hidden');
+                        learnedBtn.classList.add('hidden');
+                        notLearnedBtn.classList.add('hidden');
+                        masterBtn.classList.add('hidden');
+                        prevBtn.classList.add('hidden');
+                        nextBtn.classList.add('hidden');
+                        updateFlashcard();
+                        return;
+                    }
+                    
+                    // Adjust current index
+                    if (currentIndex >= words.length) {
+                        currentIndex = 0;
+                    }
+                    
+                    nextWord();
+                }
+            }
+            
+            function filterWords(filter) {
+                activeFilter = filter;
+                
+                // Update UI for filter buttons
+                if (filter === 'all') {
+                    showAllBtn.classList.add('active');
+                    showUnlearnedBtn.classList.remove('active');
+                } else {
+                    showAllBtn.classList.remove('active');
+                    showUnlearnedBtn.classList.add('active');
+                }
+                
+                const filteredWords = getFilteredWords();
+                
+                if (filteredWords.length > 0) {
+                    currentIndex = words.findIndex(word => word.id === filteredWords[0].id);
+                }
+                
+                // Update display
+                if (isStarted) {
+                    updateFlashcard();
+                }
+            }
+            
+            function getFilteredWords() {
+                if (activeFilter === 'unlearned') {
+                    return words.filter(word => !word.learned);
+                }
+                return [...words]; // Return a copy of all words
             }
             
             function updateFlashcard() {
@@ -380,16 +728,26 @@
                     wordBack.textContent = 'Додайте слова для вивчення';
                     currentIndexSpan.textContent = '0';
                     totalWordsSpan.textContent = '0';
-                    learnedCount.textContent = '0';
-                    totalCount.textContent = '0';
+                    return;
+                }
+                
+                const filteredWords = getFilteredWords();
+                
+                if (filteredWords.length === 0) {
+                    wordFront.textContent = 'Немає невивчених слів';
+                    wordBack.textContent = 'Всі слова вивчені!';
+                    currentIndexSpan.textContent = '0';
+                    totalWordsSpan.textContent = '0';
                     return;
                 }
                 
                 const word = words[currentIndex];
+                const filteredIndex = filteredWords.findIndex(w => w.id === word.id);
+                
                 wordFront.textContent = word.word;
                 wordBack.textContent = word.wordWithAccent;
-                currentIndexSpan.textContent = (currentIndex + 1).toString();
-                totalWordsSpan.textContent = words.length.toString();
+                currentIndexSpan.textContent = (filteredIndex + 1).toString();
+                totalWordsSpan.textContent = filteredWords.length.toString();
                 
                 flashcard.classList.remove('flipped');
             }
@@ -417,6 +775,9 @@
                 wordInput.value = '';
                 wordWithAccentInput.value = '';
                 
+                // Switch to practice tab after adding
+                tabs[0].click();
+                
                 if (!isStarted && words.length === 1) {
                     updateFlashcard();
                 }
@@ -430,9 +791,17 @@
                 if (words.length === 0) {
                     isStarted = false;
                     startBtn.classList.remove('hidden');
+                    learnedBtn.classList.add('hidden');
+                    notLearnedBtn.classList.add('hidden');
+                    masterBtn.classList.add('hidden');
+                    prevBtn.classList.add('hidden');
+                    nextBtn.classList.add('hidden');
                     updateFlashcard();
-                } else if (currentIndex >= words.length) {
-                    currentIndex = words.length - 1;
+                } else if (isStarted) {
+                    // Adjust current index if needed
+                    if (currentIndex >= words.length) {
+                        currentIndex = words.length - 1;
+                    }
                     updateFlashcard();
                 }
             }
@@ -468,6 +837,24 @@
                 saveWords();
                 updateWordList();
                 updateStats();
+                
+                if (isStarted && activeFilter === 'unlearned' && word.learned) {
+                    // If we're showing only unlearned and marked a word as learned, move to next
+                    const filteredWords = getFilteredWords();
+                    if (filteredWords.length === 0) {
+                        alert('Вітаємо! Ви вивчили всі слова!');
+                        isStarted = false;
+                        startBtn.classList.remove('hidden');
+                        learnedBtn.classList.add('hidden');
+                        notLearnedBtn.classList.add('hidden');
+                        masterBtn.classList.add('hidden');
+                        prevBtn.classList.add('hidden');
+                        nextBtn.classList.add('hidden');
+                    } else {
+                        currentIndex = words.findIndex(word => word.id === filteredWords[0].id);
+                    }
+                    updateFlashcard();
+                }
             }
             
             function updateWordList() {
