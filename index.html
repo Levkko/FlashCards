@@ -16,6 +16,10 @@
             min-height: 100vh;
             background-color: #f8f9fa;
         }
+        body.dark-mode {
+            background-color: #23272f;
+            color: #f8f9fa;
+        }
         .container {
             width: 100%;
             max-width: 800px;
@@ -69,10 +73,18 @@
             background-color: #d1ecf1;
             color: #0c5460;
         }
+        body.dark-mode .card-front {
+            background-color: #2d3748;
+            color: #e2e8f0;
+        }
         .card-back {
             background-color: #d4edda;
             color: #155724;
             transform: rotateY(180deg);
+        }
+        body.dark-mode .card-back {
+            background-color: #384a3d;
+            color: #c3e6cb;
         }
         .controls {
             display: flex;
@@ -102,12 +114,28 @@
         .btn-dont-know:hover {
             background-color: #f5c6cb;
         }
+        body.dark-mode .btn-dont-know {
+            background-color: #7d2636;
+            color: #fff;
+        }
+        body.dark-mode .btn-dont-know:hover {
+            background-color: #a94442;
+            color: #fff;
+        }
         .btn-know {
             background-color: #d4edda;
             color: #155724;
         }
         .btn-know:hover {
             background-color: #c3e6cb;
+        }
+        body.dark-mode .btn-know {
+            background-color: #22543d;
+            color: #fff;
+        }
+        body.dark-mode .btn-know:hover {
+            background-color: #38a169;
+            color: #fff;
         }
         .progress {
             width: 100%;
@@ -116,11 +144,17 @@
             height: 10px;
             margin-bottom: 1rem;
         }
+        body.dark-mode .progress {
+            background-color: #38404a;
+        }
         .progress-bar {
             height: 100%;
             background-color: #28a745;
             border-radius: 5px;
             transition: width 0.3s;
+        }
+        body.dark-mode .progress-bar {
+            background-color: #4fd1c5;
         }
         .info {
             display: flex;
@@ -149,8 +183,17 @@
             margin-top: 1rem;
             transition: background-color 0.3s;
         }
-        .reset-button:hover {
-            background-color: #5a6268;
+        body.dark-mode .reset-button,
+        body.dark-mode .export-btn,
+        body.dark-mode .import-btn {
+            background-color: #38404a;
+            color: #f8f9fa;
+        }
+        body.dark-mode .reset-button:hover,
+        body.dark-mode .export-btn:hover,
+        body.dark-mode .import-btn:hover {
+            background-color: #4fd1c5;
+            color: #23272f;
         }
         .letter-index {
             display: flex;
@@ -168,7 +211,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, color 0.3s;
         }
         .letter-button:hover {
             background-color: #ced4da;
@@ -176,6 +219,18 @@
         .letter-button.active {
             background-color: #007bff;
             color: white;
+        }
+        body.dark-mode .letter-button {
+            background-color: #38404a;
+            color: #f8f9fa;
+        }
+        body.dark-mode .letter-button:hover {
+            background-color: #4fd1c5;
+            color: #23272f;
+        }
+        body.dark-mode .letter-button.active {
+            background-color: #007bff;
+            color: #fff;
         }
         
         /* Стилі для вкладок */
@@ -204,6 +259,10 @@
             background-color: #fff;
             color: #495057;
             font-weight: bold;
+        }
+        body.dark-mode .tab.active {
+            background-color: #23272f;
+            color: #f8f9fa;
         }
         
         /* Стилі для сторінок */
@@ -270,6 +329,10 @@
             border-radius: 5px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             box-sizing: border-box;
+        }
+        body.dark-mode .add-word-form {
+            background-color: #23272f;
+            color: #f8f9fa;
         }
         .form-group {
             display: flex;
@@ -474,6 +537,8 @@
                 </table>
             </div>
         </div>
+        
+        <button id="theme-toggle" class="reset-button" style="position:absolute;top:1rem;right:1rem;">🌙</button>
     </div>
     
     <script>
@@ -1313,6 +1378,24 @@
             // Запуск додатку
             init();
         });
+        
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle.addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            // Зберігаємо вибір теми в localStorage
+            if(document.body.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+                themeToggle.textContent = '☀️';
+            } else {
+                localStorage.setItem('theme', 'light');
+                themeToggle.textContent = '🌙';
+            }
+        });
+        // Встановлюємо тему при завантаженні сторінки
+        if(localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            themeToggle.textContent = '☀️';
+        }
     </script>
 </body>
 </html>
